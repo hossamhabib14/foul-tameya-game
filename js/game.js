@@ -252,8 +252,21 @@ function updatePlayerZones(dt) {
   }
   if (cleaning) { cleaning.clean += dt; P.workT = 0.2; if (cleaning.clean >= 2.5) finishClean(cleaning); }
   else for (const t of T) if (!t.cleanBy) t.clean = Math.max(0, t.clean - dt);
-  // تفريغ الزبالة
-  if (G.flags.trash && G.bags > 0 && inZone(P, CFG.trash.zone)) {
+  // المعلم الرئيسي وحده يتخلص من السندوتشات التي يحملها عند دخوله دائرة الصندوق.
+  // تُزال قطعة واحدة في كل نبضة وتظهر وهي تطير إلى داخل الصندوق.
+  if (G.flags.trash && inZone(P, CFG.trash.zone) && P.stack.length > 0) {
+    P.trashT += dt; P.workT = 0.2;
+    if (P.trashT >= 0.24) {
+      P.trashT = 0;
+      const i = P.stack.length - 1;
+      const it = P.stack.splice(i, 1)[0];
+      const from = stackPos(i);
+      flyItem(it.type, from.x, from.y, { x: CFG.trash.x, y: CFG.trash.y - 65 }, 0.34);
+      fx('dust_puff', CFG.trash.x, CFG.trash.y - 55, 65, 0.35, -8);
+      Snd.thud();
+      if (P.stack.length === 0) floater(CFG.trash.x, CFG.trash.y - 145, 'تم التخلص من الطعام', '#fff1d6');
+    }
+  } else if (G.flags.trash && G.bags > 0 && inZone(P, CFG.trash.zone)) {
     P.trashT += dt; P.workT = 0.2;
     if (P.trashT >= 2) { G.bags = 0; P.trashT = 0; addMoney(10); floater(CFG.trash.x, CFG.trash.y - 120, '+١٠', '#ffe27a'); Snd.coin(); }
   } else P.trashT = 0;
@@ -807,7 +820,7 @@ function collectEntities(list) {
   // الشخصيات
   add(P.y, () => { drawChar(P, CFG.CHAR_H); drawStack(); });
   for (const c of CUS) add(c.y, () => drawChar(c, c.sheet === 'cust_woman' ? CFG.CUST_H - 6 : CFG.CUST_H));
-  for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
+  for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H); if (w.kind === 'carrier') txt('الشنكوتي', w.x, w.y - CFG.CHAR_H - 30, 25, '#fff1c7'); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
   // المركبات
   for (const v of VEH) add(v.y, () => { shadow(v.x, v.y, v.w * 0.85, 0.22); drawStatic('vehicles', v.kind, v.x, v.y + 6, v.w); });
 }
@@ -831,7 +844,10 @@ function drawGround() {
   if (S.wrap.unlocked) drawRing(S.wrap.input, lit(S.wrap.input), 'bread');
   drawRing(CFG.counter.drop, lit(CFG.counter.drop), 'sandwich_foul');
   drawRing(CFG.desk.zone, lit(CFG.desk.zone) && C.pile > 0, null);
-  if (G.flags.trash) drawRing(CFG.trash.zone, lit(CFG.trash.zone), 'tomato_plate');
+  if (G.flags.trash) {
+    drawRing(CFG.trash.zone, lit(CFG.trash.zone) && P.stack.length > 0, 'tomato_plate');
+    txt(P.stack.length > 0 ? 'ارمِ الأكل هنا' : 'صندوق الزبالة', CFG.trash.zone.x, CFG.trash.zone.y + 105, 25, '#fff1d6');
+  }
   if (G.flags.window) drawRing(CFG.traffic.window, lit(CFG.traffic.window), 'sandwich_foul');
   if (PAD) drawPad(PAD);
 }
