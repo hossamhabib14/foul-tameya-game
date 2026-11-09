@@ -31,3 +31,11 @@
 
 ## الحفظ
 يتحفظ تلقائيًا كل ٥ ثواني في المتصفح (`localStorage`). من ⚙ يمكنك مسح التقدّم.
+
+
+## Visual Refresh V2
+- Refined the mobile HUD, modal panels, buttons, and main-menu surfaces with softer contrast and clearer spacing.
+- Applied a warm, brighter color grade and light sharpening to all existing character sprite sheets while preserving alpha channels, sprite dimensions, and frame layout.
+- Tuned the street background and title artwork for a warmer, more readable palette.
+- Gameplay logic and asset paths were preserved.
+- Validation: all JavaScript files pass `node --check`; all manifest asset paths resolve.

@@ -4,9 +4,15 @@ const $ = (s) => document.querySelector(s);
 const AR = (n) => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 
 const UI = {
-  _bannerT: null, _toastT: null, last: {},
+  _bannerT: null, _toastT: null, last: {}, menuActive: true, pendingOffline: 0,
   init() {
+    $('#menuContinue').addEventListener('click', () => this.startGame());
+    $('#menuNew').addEventListener('click', () => { if (confirm('هتخسر كل تقدمك والفلوس والتطويرات، متأكد؟')) resetGame(); });
+    $('#menuHelp').addEventListener('click', () => this.openHowTo());
+    $('#menuSettings').addEventListener('click', () => this.openSettings());
     $('#gear').addEventListener('click', () => { Snd.init(); Snd.click(); this.openSettings(); });
+    canvas.addEventListener('click', (e) => { if (G.paused || this.menuActive) return; const r = canvas.getBoundingClientRect(); const wx = (e.clientX-r.left)*DPR; const wy = (e.clientY-r.top)*DPR; const x = (wx-W/2)/K+cam.x, y = (wy-H/2)/K+cam.y; for (const key in S) { const st=S[key]; if (Math.hypot(x-st.x,y-st.y)<Math.max(85,st.w*.55)) { this.openStationInfo(st); break; } } });
+    $('#btnGoals').addEventListener('click', () => this.openGoals());
     $('#btnUp').addEventListener('click', () => { Snd.init(); Snd.click(); this.openUpgrades(); });
     $('#btnBonus').addEventListener('click', () => {
       Snd.init(); Snd.click();
@@ -44,8 +50,14 @@ const UI = {
     const b = $('#toast'); b.textContent = t; b.classList.add('show');
     clearTimeout(this._toastT); this._toastT = setTimeout(() => b.classList.remove('show'), 2200);
   },
+  openGoals() { const dishes=G.dailyDishes||0, happy=G.dailyHappy||0; this.openModal('<h2>أهداف اليوم</h2><div class="card"><div class="info"><div class="nm">قدّم ٥٠ طبق</div><div class="ef">'+AR(Math.min(50,dishes))+' / ٥٠</div></div><b>'+(dishes>=50?'✓':'…')+'</b></div><div class="card"><div class="info"><div class="nm">رضّي ١٠ زباين</div><div class="ef">'+AR(Math.min(10,happy))+' / ١٠</div></div><b>'+(happy>=10?'✓':'…')+'</b></div><div class="card"><div class="info"><div class="nm">إنجاز إجمالي</div><div class="ef">'+AR(G.servedTotal||0)+' زبون تم خدمتهم</div></div></div><button class="close" id="goalClose">تمام</button>'); $('#goalClose').onclick=()=>this.closeModal(); },
+  openStationInfo(st) { const names={foul:'عربية الفول',bread:'محطة العيش',wrap:'منضدة التجهيز',tameya:'وقدة الطعمية',fries:'محطة البطاطس',eggplant:'محطة الباذنجان'}; const stock=st.key==='wrap' ? (st.bread+' عيش / '+st.fillTotal+' حشوات / '+st.out.length+' جاهز') : (st.out.length+' من '+st.cap+''); const price=st.key==='foul'?'١٠ ج للسندوتش':st.key==='tameya'?'١٢ ج للسندوتش':st.key==='fries'?'١٤ ج للسندوتش':st.key==='eggplant'?'١٦ ج للسندوتش':'حسب الصنف'; this.openModal('<h2>'+names[st.key]+'</h2><div class="card"><div class="info"><div class="nm">المخزون</div><div class="ef">'+stock+'</div></div></div><div class="card"><div class="info"><div class="nm">سعر البيع</div><div class="ef">'+price+'</div></div></div><div class="card"><div class="info"><div class="nm">وقت التحضير</div><div class="ef">'+AR(st.cycle)+' ثانية تقريبًا</div></div></div><button class="close" id="stationClose">تمام</button>'); $('#stationClose').onclick=()=>this.closeModal(); },
+  showMainMenu(hasSave) { $('#menuContinue').textContent = hasSave ? 'كمّل اللعب' : 'ابدأ اللعب'; $('#mainMenu').classList.remove('hidden'); G.paused = true; this.menuActive = true; },
+  startGame() { $('#mainMenu').classList.add('hidden'); this.menuActive = false; G.paused = false; Snd.init(); Snd.startMusic(); if (this.pendingOffline > 0) { addMoney(this.pendingOffline); G.shown = G.money; this.openOffline(this.pendingOffline); this.pendingOffline = 0; } else if (G.playT < 5) this.toast('حرّك المعلم بالجويستيك — الأكل بيتجمع لوحده'); },
+  openBaz() { this.openModal('<h2>الباز</h2><div style="text-align:center;font-size:20px;font-weight:900;padding:12px">لله يا محسنين.. حاجة ببلاش يا معلم؟</div><div class="row"><button class="buy" id="bazYes">أوافق - ١٥ ج</button><button class="sw danger" id="bazNo">أرفض</button></div>'); let done = false; const finish = (ok) => { if (done) return; done = true; clearTimeout(this._bazTimer); finishBaz(ok); this.closeModal(); }; $('#bazYes').onclick = () => finish(true); $('#bazNo').onclick = () => finish(false); this._bazTimer = setTimeout(() => finish(false), 15000); },
+  openHowTo() { this.openModal(`<h2>كيف تلعب؟</h2><div class="card"><b>١</b><span>استقبل الزبون وتابع طلبه</span></div><div class="card"><b>٢</b><span>جهّز السندوتشات من المحطات</span></div><div class="card"><b>٣</b><span>قدّم الطلب للكاونتر</span></div><div class="card"><b>٤</b><span>اجمع الفلوس من درج الكاشير</span></div><div class="card"><b>٥</b><span>طوّر المحل وافتح معدات وعمال</span></div><button class="close" id="howClose">فهمت</button>`); $('#howClose').onclick = () => this.closeModal(); },
   openModal(html) { G.paused = true; $('#sheet').innerHTML = html; $('#modal').classList.remove('hidden'); },
-  closeModal() { $('#modal').classList.add('hidden'); G.paused = false; saveGame(); },
+  closeModal() { $('#modal').classList.add('hidden'); G.paused = this.menuActive; if (!this.menuActive) saveGame(); },
   upEffect(u) {
     const l = G.up[u.k];
     switch (u.k) {
@@ -87,12 +99,14 @@ const UI = {
       $('#sheet').innerHTML = '<h2>الإعدادات</h2>' +
         '<div class="row"><span>الصوت</span><button class="sw ' + (s.sound ? '' : 'off') + '" id="s1">' + (s.sound ? 'شغّال' : 'مقفول') + '</button></div>' +
         '<div class="row"><span>الموسيقى</span><button class="sw ' + (s.music ? '' : 'off') + '" id="s2">' + (s.music ? 'شغّالة' : 'مقفولة') + '</button></div>' +
+        '<div class="row"><span>اللغة</span><button class="sw" id="sLang">العربية فقط</button></div>' +
         '<div class="row"><span>الاهتزاز</span><button class="sw ' + (s.vib ? '' : 'off') + '" id="s3">' + (s.vib ? 'شغّال' : 'مقفول') + '</button></div>' +
         '<div class="row"><span>مسح التقدّم</span><button class="sw danger" id="s4">امسح</button></div>' +
         '<button class="close" id="cl">تمام</button>';
       $('#s1').onclick = () => { s.sound = !s.sound; applySettings(); render(); };
       $('#s2').onclick = () => { s.music = !s.music; applySettings(); render(); };
       $('#s3').onclick = () => { s.vib = !s.vib; applySettings(); render(); };
+      $('#sLang').onclick = () => { this.toast('اللغة المتاحة حاليًا: العربية'); };
       $('#s4').onclick = () => { if (confirm('متأكد؟ هتمسح كل التقدّم.')) resetGame(); };
       $('#cl').onclick = () => { Snd.click(); this.closeModal(); };
     };

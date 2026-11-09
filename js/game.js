@@ -10,7 +10,7 @@ const G = {
   flags: { chain: false, tameya: false, fries: false, eggplant: false, carrier: false, cleaner: false, cook: false, cashier: false, decor: false, window: false, rack: false, branch: false, trash: false },
   tablesUnlocked: 0, boostUntil: 0, boostCd: 0, ev: null, nextEv: CFG.events.first, spawnT: 1,
   ipm: 0, earned: 0, earnT: 0, saveT: 0, settings: { sound: true, music: true, vib: true },
-  bags: 0, toastDone: {},
+  bags: 0, toastDone: {}, servedTotal: 0, dailyDate: '', dailyDishes: 0, dailyHappy: 0,
 };
 
 const P = { x: CFG.start.x, y: CFG.start.y, vx: 0, vy: 0, moving: false, stack: [], pt: 0, workT: 0, anim: 0, sheet: 'vendor', rowName: 'idle', sway: 0, cleanT: 0, trashT: 0, catT: 0 };
@@ -29,6 +29,8 @@ const T = CFG.tables.map((d, i) => ({
   seats: d.seats.map(s => ({ x: d.x + s[0], y: d.y + s[1], c: null })),
 }));
 const CUS = [];
+const BAZ = { active: false, x: 0, y: 0, vx: 0, vy: 1, moving: false, sheet: 'baz', rowName: 'idle', state: 'idle', nextAt: 75, anim: 0, shake: 0, reactionT: 0 };
+
 const WK = { carrier: null, cleaner: null, cook: null, cashier: null };
 const VEH = [];
 const FLY = [], FLO = [], FXS = [];
@@ -318,6 +320,7 @@ function freeSeat() {
   return opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
 }
 function payCustomer(c) {
+  G.servedTotal = (G.servedTotal || 0) + 1; G.dailyHappy = (G.dailyHappy || 0) + 1; G.dailyDishes = (G.dailyDishes || 0) + c.order.length;
   let amt = 0; for (const t of c.order) amt += CFG.products[t];
   amt = Math.round(amt * priceMul() * c.tip * evMul('income') * boostMul());
   C.pile += amt;
@@ -649,6 +652,8 @@ function updatePad(dt) {
 const EVENTS = [
   { id: 'ramadan', txt: 'طابور رمضان! زحمة وخير 🌙', dur: 35, spawn: 2, income: 1.3 },
   { id: 'iftar', txt: 'زحمة الفطار! الكل مستعجل', dur: 30, income: 1.5, pat: 0.7, spawn: 1.5 },
+  { id: 'lunch', txt: 'زحمة الغدا! الطلبات بتزيد', dur: 35, income: 1.25, spawn: 1.7 },
+  { id: 'rain', txt: 'مطر خفيف في الحارة.. الزباين أهدى', dur: 25, income: 1.1, spawn: 0.8 },
   { id: 'match', txt: 'ماتش الأهلي والزمالك! ⚽', dur: 35, spawn: 1.5, income: 1.2 },
   { id: 'dust', txt: 'عاصفة ترابية.. الزباين قلّت', dur: 30, spawn: 0.6 },
   { id: 'power', txt: 'الكهربا فصلت!', dur: 8, pause: true },
@@ -696,10 +701,70 @@ function tutorialTarget() {
   return null;
 }
 
+/* ===================== شخصية الباز ===================== */
+function updateBaz(dt) {
+  if (!BAZ.active) {
+    if (G.t >= BAZ.nextAt && !G.paused && !G.ev && !G.menuOpen) {
+      BAZ.active = true; BAZ.state = 'approach'; BAZ.x = CFG.spawn.x; BAZ.y = CFG.spawn.y;
+      BAZ.moving = true; BAZ.rowName = 'walk_down';
+    }
+    return;
+  }
+  BAZ.anim += dt;
+  BAZ.shake = Math.max(0, (BAZ.shake || 0) - dt);
+  if (BAZ.state === 'approach') {
+    BAZ.moving = true;
+    const tx = P.x + 75, ty = P.y + 8;
+    if (moveTo(BAZ, tx, ty, 145, dt)) {
+      BAZ.moving = false; BAZ.rowName = 'talk';
+      BAZ.state = 'asking';
+      if (typeof UI !== 'undefined') UI.openBaz();
+    }
+  } else if (BAZ.state === 'reaction') {
+    BAZ.moving = false; BAZ.rowName = 'reaction';
+    BAZ.reactionT -= dt;
+    if (BAZ.reactionT <= 0) BAZ.state = 'leaving';
+  } else if (BAZ.state === 'leaving') {
+    BAZ.moving = true;
+    if (moveTo(BAZ, CFG.spawn.x, CFG.spawn.y, 155, dt)) {
+      BAZ.active = false; BAZ.state = 'idle'; BAZ.moving = false;
+    }
+  } else {
+    BAZ.moving = false;
+    BAZ.rowName = BAZ.state === 'asking' ? 'talk' : 'idle';
+  }
+}
+function finishBaz(accepted) {
+  if (!BAZ.active || BAZ.state !== 'asking') return;
+  if (accepted) {
+    const cost = Math.min(15, G.money);
+    G.money -= cost; G.shown = G.money; G.fame += 1;
+    floater(BAZ.x, BAZ.y - 190, 'ربنا يفتح عليك', '#aaff8a');
+    banner('الباز: ربنا يفتح عليك'); Snd.ding();
+  } else {
+    G.fame = Math.max(0, G.fame - 1); BAZ.shake = 0.8;
+    floater(BAZ.x, BAZ.y - 190, 'ماشي يا معلم.. هتشوف', '#ff9c7a');
+    banner('الباز زعل ومشي'); Snd.buzz();
+  }
+  BAZ.state = 'reaction'; BAZ.rowName = 'reaction'; BAZ.moving = false; BAZ.reactionT = 0.9;
+  BAZ.nextAt = G.t + rand(60, 120);
+}
+function drawBaz() {
+  const shake = BAZ.shake > 0 ? Math.sin(BAZ.anim * 45) * 5 * BAZ.shake : 0;
+  ctx.save();
+  ctx.fillStyle = 'rgba(45,28,12,.22)';
+  ctx.beginPath(); ctx.ellipse(BAZ.x, BAZ.y - 3, 34, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.save(); ctx.translate(shake, 0); drawChar(BAZ, CFG.CHAR_H); ctx.restore();
+  if (BAZ.state === 'asking') txt('لله يا محسنين.. حاجة ببلاش يا معلم؟', BAZ.x + shake, BAZ.y - 180, 23, '#fff', '#392313');
+}
+
 /* ===================== التحديث الرئيسي ===================== */
 function update(dt) {
   G.t += dt; G.playT += dt;
+  const today = new Date().toLocaleDateString('en-CA'); if (G.dailyDate !== today) { G.dailyDate = today; G.dailyDishes = 0; G.dailyHappy = 0; }
   updatePlayer(dt);
+  updateBaz(dt);
   updateStations(dt);
   updatePlayerZones(dt);
   updateCustomers(dt);
@@ -719,7 +784,7 @@ function update(dt) {
 
 /* ===================== حفظ/تحميل ===================== */
 function saveGame() {
-  Store.save({ money: G.money, fame: G.fame, level: G.level, padIdx: G.padIdx, up: G.up, bags: G.bags, ipm: G.ipm, last: Date.now(), playT: G.playT, settings: G.settings });
+  Store.save({ money: G.money, fame: G.fame, level: G.level, padIdx: G.padIdx, up: G.up, bags: G.bags, ipm: G.ipm, last: Date.now(), playT: G.playT, settings: G.settings, servedTotal: G.servedTotal, dailyDate: G.dailyDate, dailyDishes: G.dailyDishes, dailyHappy: G.dailyHappy });
 }
 function loadGame() {
   const d = Store.load();
@@ -727,7 +792,7 @@ function loadGame() {
   rebuildBlockers();
   if (!d) return null;
   G.money = d.money || 0; G.shown = G.money; G.fame = d.fame || 0; G.level = d.level || 1; G.up = Object.assign(G.up, d.up || {}); G.bags = d.bags || 0;
-  G.ipm = d.ipm || 0; G.playT = d.playT || 0; G.settings = Object.assign(G.settings, d.settings || {});
+  G.ipm = d.ipm || 0; G.playT = d.playT || 0; G.servedTotal=d.servedTotal||0; G.dailyDate=d.dailyDate||''; G.dailyDishes=d.dailyDishes||0; G.dailyHappy=d.dailyHappy||0; G.settings = Object.assign(G.settings, d.settings || {});
   const n = d.padIdx || 0;
   for (let i = 0; i < n; i++) { PAD = { idx: i, def: CFG.pads[i], x: 0, y: 0 }; applyPad(CFG.pads[i], true); }
   G.padIdx = n; makePad(n);
@@ -819,6 +884,7 @@ function collectEntities(list) {
     if (P.trashT > 0) drawProgress(z.x, z.y - 180, P.trashT / 2, 20);
   });
   // الشخصيات
+  if (BAZ.active) add(BAZ.y, () => drawBaz());
   add(P.y, () => { drawChar(P, CFG.CHAR_H); drawStack(); });
   for (const c of CUS) add(c.y, () => drawChar(c, c.sheet === 'cust_woman' ? CFG.CUST_H - 6 : CFG.CUST_H));
   for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H); if (w.kind === 'carrier') txt('الشنكوتي', w.x, w.y - CFG.CHAR_H - 30, 25, '#fff1c7'); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
@@ -843,8 +909,8 @@ function drawGround() {
   const lit = (z) => inZone(P, z);
   for (const k in S) { const st = S[k]; if (!st.unlocked) continue; const out = k === 'wrap' ? 'sandwich_foul' : (k === 'foul' ? (G.flags.chain ? 'bowl_foul' : 'sandwich_foul') : prodType(st)); drawRing(st.pickup, lit(st.pickup) && st.out.length > 0, out); }
   if (S.wrap.unlocked) drawRing(S.wrap.input, lit(S.wrap.input), 'bread');
-  drawRing(CFG.counter.drop, lit(CFG.counter.drop), 'sandwich_foul');
-  drawRing(CFG.desk.zone, lit(CFG.desk.zone) && C.pile > 0, null);
+  drawRing(CFG.counter.drop, lit(CFG.counter.drop), 'sandwich_foul', 1, 'green');
+  drawRing(CFG.desk.zone, lit(CFG.desk.zone) && C.pile > 0, null, 1, 'yellow');
   drawRing(CFG.trash.zone, lit(CFG.trash.zone) && P.stack.length > 0, P.stack.length > 0 ? 'tomato_plate' : null);
   txt(P.stack.length > 0 ? 'ارمِ الأكل هنا' : 'صندوق الزبالة', CFG.trash.zone.x, CFG.trash.zone.y + 105, 25, '#fff1d6');
   if (G.flags.window) drawRing(CFG.traffic.window, lit(CFG.traffic.window), 'sandwich_foul');

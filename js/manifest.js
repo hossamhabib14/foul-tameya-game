@@ -1,5 +1,20 @@
 const ASSETS = {
  "anim": {
+  "baz": {
+   "src": "assets/anim/baz.png",
+   "cols": 6,
+   "rows": 4,
+   "fw": 341.333333,
+   "fh": 384,
+   "rowNames": ["idle", "walk_down", "talk", "reaction"],
+   "frames": [6, 6, 6, 6],
+   "rowTop": [0, 0, 0, 0],
+   "rowBottom": [384, 384, 384, 384],
+   "rowH": [384, 384, 384, 384],
+   "standH": 384,
+   "lateral": {"left": [1, false], "right": [1, true]}
+  },
+
   "vendor": {
    "src": "assets/anim/vendor.png",
    "cols": 10,

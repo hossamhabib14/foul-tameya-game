@@ -5,14 +5,16 @@
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   Input.init(canvas);
   await loadAssets((p) => { const f = document.getElementById('lfill'); if (f) f.style.width = Math.round(p * 100) + '%'; });
+  const hasSave = !!Store.load();
   const offline = loadGame();
+  let pendingOffline = offline || 0;
   applySettings();
   pushOut(P, 26);
   cam.x = P.x; cam.y = P.y;
   UI.init();
   document.getElementById('loading').classList.add('done');
-  if (offline) { addMoney(offline); G.shown = G.money; UI.openOffline(offline); }
-  else if (G.playT < 5) setTimeout(() => UI.toast('حرّك الأسطى بالجويستيك — الأكل بيتجمع لوحده'), 800);
+  G.paused = true; UI.menuActive = true; UI.showMainMenu(hasSave);
+  UI.pendingOffline = pendingOffline;
 
   let last = performance.now();
   function frame(now) {

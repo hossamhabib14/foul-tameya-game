@@ -62,6 +62,10 @@ function rowIdx(sheet, rowName) {
 }
 function moveRow(sheet, vx, vy) {
   const a = ASSETS.anim[sheet];
+  if (sheet === 'baz') {
+    if (Math.abs(vx) > Math.abs(vy) * 0.9) { const l = a.lateral[vx < 0 ? 'left' : 'right']; return { row: 1, flip: !!l[1] }; }
+    return { row: 1, flip: false };
+  }
   if (Math.abs(vx) > Math.abs(vy) * 0.9) { const l = vx < 0 ? a.lateral.left : a.lateral.right; return { row: l[0], flip: !!l[1] }; }
   return { row: vy > 0 ? 1 : 2, flip: false };
 }
@@ -120,10 +124,11 @@ function drawBubble(x, y, list, frac, mood) {
   }
 }
 
-function drawRing(z, active, itemName, scale) {
+function drawRing(z, active, itemName, scale, tone) {
   const rx = z.r * 1.15 * (scale || 1), ry = z.r * 0.65 * (scale || 1);
-  ctx.fillStyle = active ? 'rgba(255,255,255,.34)' : 'rgba(255,255,255,.16)';
-  ctx.strokeStyle = active ? 'rgba(255,240,170,.95)' : 'rgba(255,255,255,.5)'; ctx.lineWidth = active ? 5 : 3;
+  const palette = tone === 'green' ? ['rgba(60,190,90,.25)','rgba(65,210,100,.85)'] : tone === 'yellow' ? ['rgba(255,195,50,.25)','rgba(255,195,50,.9)'] : ['rgba(255,255,255,.16)','rgba(255,255,255,.5)'];
+  ctx.fillStyle = active ? palette[0].replace(/\.25\)/, '.38)') : palette[0];
+  ctx.strokeStyle = active ? palette[1] : palette[1].replace(/\.85\)|\.9\)/, '.5)'); ctx.lineWidth = active ? 5 : 3;
   ctx.beginPath(); ctx.ellipse(z.x, z.y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   if (itemName) drawItem(itemName, z.x, z.y + 12, 40, 0.75);
 }
