@@ -1,0 +1,907 @@
+const ASSETS = {
+ "anim": {
+  "vendor": {
+   "src": "assets/anim/vendor.png",
+   "cols": 10,
+   "rows": 6,
+   "fw": 174,
+   "fh": 294,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "work"
+   ],
+   "frames": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "rowTop": [
+    24,
+    0,
+    20,
+    14,
+    14,
+    8
+   ],
+   "rowBottom": [
+    294,
+    294,
+    293,
+    291,
+    290,
+    287
+   ],
+   "rowH": [
+    270,
+    294,
+    273,
+    277,
+    276,
+    279
+   ],
+   "standH": 270,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     4,
+     false
+    ]
+   }
+  },
+  "cashier": {
+   "src": "assets/anim/cashier.png",
+   "cols": 10,
+   "rows": 6,
+   "fw": 236,
+   "fh": 294,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "work"
+   ],
+   "frames": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "rowTop": [
+    24,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "rowBottom": [
+    294,
+    294,
+    294,
+    294,
+    294,
+    294
+   ],
+   "rowH": [
+    270,
+    294,
+    294,
+    294,
+    294,
+    294
+   ],
+   "standH": 270,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     3,
+     true
+    ]
+   }
+  },
+  "delivery": {
+   "src": "assets/anim/delivery.png",
+   "cols": 10,
+   "rows": 6,
+   "fw": 195,
+   "fh": 285,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "work"
+   ],
+   "frames": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "rowTop": [
+    12,
+    9,
+    9,
+    10,
+    10,
+    0
+   ],
+   "rowBottom": [
+    285,
+    285,
+    284,
+    285,
+    285,
+    285
+   ],
+   "rowH": [
+    273,
+    276,
+    275,
+    275,
+    275,
+    285
+   ],
+   "standH": 273,
+   "lateral": {
+    "left": [
+     3,
+     true
+    ],
+    "right": [
+     3,
+     false
+    ]
+   }
+  },
+  "cook": {
+   "src": "assets/anim/cook.png",
+   "cols": 12,
+   "rows": 6,
+   "fw": 196,
+   "fh": 294,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "work"
+   ],
+   "frames": [
+    12,
+    12,
+    12,
+    12,
+    12,
+    12
+   ],
+   "rowTop": [
+    36,
+    0,
+    0,
+    0,
+    0,
+    15
+   ],
+   "rowBottom": [
+    294,
+    294,
+    294,
+    294,
+    293,
+    245
+   ],
+   "rowH": [
+    258,
+    294,
+    294,
+    294,
+    293,
+    230
+   ],
+   "standH": 258,
+   "lateral": {
+    "left": [
+     4,
+     false
+    ],
+    "right": [
+     3,
+     false
+    ]
+   }
+  },
+  "helper": {
+   "src": "assets/anim/helper.png",
+   "cols": 7,
+   "rows": 6,
+   "fw": 105,
+   "fh": 136,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "work"
+   ],
+   "frames": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "rowTop": [
+    6,
+    1,
+    4,
+    0,
+    0,
+    2
+   ],
+   "rowBottom": [
+    135,
+    135,
+    135,
+    136,
+    135,
+    135
+   ],
+   "rowH": [
+    129,
+    134,
+    131,
+    136,
+    135,
+    133
+   ],
+   "standH": 129,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     4,
+     false
+    ]
+   }
+  },
+  "cust_man": {
+   "src": "assets/anim/cust_man.png",
+   "cols": 8,
+   "rows": 9,
+   "fw": 109,
+   "fh": 200,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "wait",
+    "order",
+    "eat",
+    "happy"
+   ],
+   "frames": [
+    8,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "rowTop": [
+    5,
+    6,
+    10,
+    12,
+    12,
+    12,
+    12,
+    12,
+    6
+   ],
+   "rowBottom": [
+    194,
+    194,
+    193,
+    194,
+    193,
+    194,
+    194,
+    200,
+    194
+   ],
+   "rowH": [
+    189,
+    188,
+    183,
+    182,
+    181,
+    182,
+    182,
+    188,
+    188
+   ],
+   "standH": 189,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     3,
+     true
+    ]
+   }
+  },
+  "cust_woman": {
+   "src": "assets/anim/cust_woman.png",
+   "cols": 8,
+   "rows": 9,
+   "fw": 105,
+   "fh": 200,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "wait",
+    "order",
+    "eat",
+    "happy"
+   ],
+   "frames": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "rowTop": [
+    10,
+    10,
+    13,
+    15,
+    14,
+    15,
+    14,
+    16,
+    6
+   ],
+   "rowBottom": [
+    192,
+    190,
+    192,
+    193,
+    193,
+    192,
+    190,
+    189,
+    193
+   ],
+   "rowH": [
+    182,
+    180,
+    179,
+    178,
+    179,
+    177,
+    176,
+    173,
+    187
+   ],
+   "standH": 182,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     3,
+     true
+    ]
+   }
+  },
+  "cust_elder": {
+   "src": "assets/anim/cust_elder.png",
+   "cols": 7,
+   "rows": 9,
+   "fw": 113,
+   "fh": 200,
+   "rowNames": [
+    "idle",
+    "walk_down",
+    "walk_up",
+    "walk_left",
+    "walk_right",
+    "wait",
+    "order",
+    "eat",
+    "happy"
+   ],
+   "frames": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "rowTop": [
+    10,
+    10,
+    12,
+    14,
+    14,
+    14,
+    14,
+    14,
+    17
+   ],
+   "rowBottom": [
+    194,
+    192,
+    195,
+    194,
+    194,
+    193,
+    191,
+    200,
+    192
+   ],
+   "rowH": [
+    184,
+    182,
+    183,
+    180,
+    180,
+    179,
+    177,
+    186,
+    175
+   ],
+   "standH": 184,
+   "lateral": {
+    "left": [
+     3,
+     false
+    ],
+    "right": [
+     3,
+     true
+    ]
+   }
+  }
+ },
+ "food": {
+  "bowl_foul": {
+   "src": "assets/food/bowl_foul.png",
+   "w": 209,
+   "h": 165
+  },
+  "bread": {
+   "src": "assets/food/bread.png",
+   "w": 214,
+   "h": 212
+  },
+  "cheese": {
+   "src": "assets/food/cheese.png",
+   "w": 233,
+   "h": 161
+  },
+  "cucumber_plate": {
+   "src": "assets/food/cucumber_plate.png",
+   "w": 210,
+   "h": 141
+  },
+  "egg_fried": {
+   "src": "assets/food/egg_fried.png",
+   "w": 192,
+   "h": 148
+  },
+  "eggplant_plate": {
+   "src": "assets/food/eggplant_plate.png",
+   "w": 213,
+   "h": 138
+  },
+  "eggs_boiled": {
+   "src": "assets/food/eggs_boiled.png",
+   "w": 185,
+   "h": 139
+  },
+  "fries": {
+   "src": "assets/food/fries.png",
+   "w": 239,
+   "h": 150
+  },
+  "lemon": {
+   "src": "assets/food/lemon.png",
+   "w": 189,
+   "h": 140
+  },
+  "peppers": {
+   "src": "assets/food/peppers.png",
+   "w": 229,
+   "h": 164
+  },
+  "pickles": {
+   "src": "assets/food/pickles.png",
+   "w": 204,
+   "h": 155
+  },
+  "salad": {
+   "src": "assets/food/salad.png",
+   "w": 220,
+   "h": 161
+  },
+  "sandwich_cheese": {
+   "src": "assets/food/sandwich_cheese.png",
+   "w": 215,
+   "h": 102
+  },
+  "sandwich_eggplant": {
+   "src": "assets/food/sandwich_eggplant.png",
+   "w": 215,
+   "h": 101
+  },
+  "sandwich_foul": {
+   "src": "assets/food/sandwich_foul.png",
+   "w": 202,
+   "h": 139
+  },
+  "sandwich_fries": {
+   "src": "assets/food/sandwich_fries.png",
+   "w": 214,
+   "h": 113
+  },
+  "sandwich_tameya": {
+   "src": "assets/food/sandwich_tameya.png",
+   "w": 212,
+   "h": 124
+  },
+  "sandwich_veg": {
+   "src": "assets/food/sandwich_veg.png",
+   "w": 215,
+   "h": 102
+  },
+  "tahini": {
+   "src": "assets/food/tahini.png",
+   "w": 134,
+   "h": 106
+  },
+  "tameya_balls": {
+   "src": "assets/food/tameya_balls.png",
+   "w": 199,
+   "h": 178
+  },
+  "tomato_plate": {
+   "src": "assets/food/tomato_plate.png",
+   "w": 209,
+   "h": 140
+  }
+ },
+ "props": {
+  "ac_unit": {
+   "src": "assets/props/ac_unit.png",
+   "w": 267,
+   "h": 229
+  },
+  "arch_door": {
+   "src": "assets/props/arch_door.png",
+   "w": 211,
+   "h": 349
+  },
+  "bonsai_tree": {
+   "src": "assets/props/bonsai_tree.png",
+   "w": 189,
+   "h": 191
+  },
+  "boxes_cardboard": {
+   "src": "assets/props/boxes_cardboard.png",
+   "w": 190,
+   "h": 172
+  },
+  "bunting": {
+   "src": "assets/props/bunting.png",
+   "w": 190,
+   "h": 128
+  },
+  "carpet": {
+   "src": "assets/props/carpet.png",
+   "w": 194,
+   "h": 120
+  },
+  "crates_wood": {
+   "src": "assets/props/crates_wood.png",
+   "w": 213,
+   "h": 183
+  },
+  "dumpster_barrel": {
+   "src": "assets/props/dumpster_barrel.png",
+   "w": 259,
+   "h": 218
+  },
+  "electric_cabinet": {
+   "src": "assets/props/electric_cabinet.png",
+   "w": 141,
+   "h": 236
+  },
+  "lamp_post": {
+   "src": "assets/props/lamp_post.png",
+   "w": 110,
+   "h": 370
+  },
+  "lantern_a": {
+   "src": "assets/props/lantern_a.png",
+   "w": 47,
+   "h": 124
+  },
+  "lantern_b": {
+   "src": "assets/props/lantern_b.png",
+   "w": 41,
+   "h": 89
+  },
+  "palm": {
+   "src": "assets/props/palm.png",
+   "w": 203,
+   "h": 355
+  },
+  "plant_pots": {
+   "src": "assets/props/plant_pots.png",
+   "w": 206,
+   "h": 199
+  },
+  "street_sign": {
+   "src": "assets/props/street_sign.png",
+   "w": 84,
+   "h": 232
+  },
+  "utility_pole": {
+   "src": "assets/props/utility_pole.png",
+   "w": 287,
+   "h": 454
+  }
+ },
+ "vehicles": {
+  "microbus": {
+   "src": "assets/vehicles/microbus.png",
+   "w": 437,
+   "h": 304
+  },
+  "motorbike": {
+   "src": "assets/vehicles/motorbike.png",
+   "w": 306,
+   "h": 313
+  },
+  "pickup_truck": {
+   "src": "assets/vehicles/pickup_truck.png",
+   "w": 500,
+   "h": 327
+  },
+  "scooter_delivery": {
+   "src": "assets/vehicles/scooter_delivery.png",
+   "w": 273,
+   "h": 300
+  },
+  "tuktuk": {
+   "src": "assets/vehicles/tuktuk.png",
+   "w": 365,
+   "h": 316
+  }
+ },
+ "equipment": {
+  "bread_basket": {
+   "src": "assets/equipment/bread_basket.png",
+   "w": 204,
+   "h": 173
+  },
+  "display_case": {
+   "src": "assets/equipment/display_case.png",
+   "w": 215,
+   "h": 286
+  },
+  "foul_cart": {
+   "src": "assets/equipment/foul_cart.png",
+   "w": 1045,
+   "h": 815
+  },
+  "foul_pot": {
+   "src": "assets/equipment/foul_pot.png",
+   "w": 220,
+   "h": 265
+  },
+  "gas_cylinder": {
+   "src": "assets/equipment/gas_cylinder.png",
+   "w": 133,
+   "h": 247
+  },
+  "gas_stove": {
+   "src": "assets/equipment/gas_stove.png",
+   "w": 244,
+   "h": 220
+  },
+  "prep_counter": {
+   "src": "assets/equipment/prep_counter.png",
+   "w": 292,
+   "h": 301
+  },
+  "round_tray": {
+   "src": "assets/equipment/round_tray.png",
+   "w": 230,
+   "h": 139
+  },
+  "sauces": {
+   "src": "assets/equipment/sauces.png",
+   "w": 245,
+   "h": 194
+  },
+  "storage_cabinet": {
+   "src": "assets/equipment/storage_cabinet.png",
+   "w": 244,
+   "h": 314
+  },
+  "topping_tray": {
+   "src": "assets/equipment/topping_tray.png",
+   "w": 284,
+   "h": 201
+  },
+  "utensils": {
+   "src": "assets/equipment/utensils.png",
+   "w": 247,
+   "h": 195
+  },
+  "wrap_table": {
+   "src": "assets/equipment/wrap_table.png",
+   "w": 232,
+   "h": 264
+  }
+ },
+ "furniture": {
+  "bench": {
+   "src": "assets/furniture/bench.png",
+   "w": 384,
+   "h": 364
+  },
+  "chair_blue": {
+   "src": "assets/furniture/chair_blue.png",
+   "w": 206,
+   "h": 292
+  },
+  "chair_green": {
+   "src": "assets/furniture/chair_green.png",
+   "w": 196,
+   "h": 287
+  },
+  "chair_red": {
+   "src": "assets/furniture/chair_red.png",
+   "w": 212,
+   "h": 298
+  },
+  "stool": {
+   "src": "assets/furniture/stool.png",
+   "w": 139,
+   "h": 168
+  },
+  "table_blue": {
+   "src": "assets/furniture/table_blue.png",
+   "w": 287,
+   "h": 297
+  },
+  "table_metal": {
+   "src": "assets/furniture/table_metal.png",
+   "w": 373,
+   "h": 310
+  },
+  "table_round": {
+   "src": "assets/furniture/table_round.png",
+   "w": 284,
+   "h": 296
+  }
+ },
+ "fx": {
+  "alert_bells": {
+   "src": "assets/fx/alert_bells.png",
+   "w": 288,
+   "h": 287
+  },
+  "cash_burst": {
+   "src": "assets/fx/cash_burst.png",
+   "w": 288,
+   "h": 286
+  },
+  "coin_pile": {
+   "src": "assets/fx/coin_pile.png",
+   "w": 288,
+   "h": 286
+  },
+  "delivery_box": {
+   "src": "assets/fx/delivery_box.png",
+   "w": 288,
+   "h": 287
+  },
+  "dust_big": {
+   "src": "assets/fx/dust_big.png",
+   "w": 288,
+   "h": 287
+  },
+  "dust_puff": {
+   "src": "assets/fx/dust_puff.png",
+   "w": 288,
+   "h": 287
+  },
+  "food_swirl": {
+   "src": "assets/fx/food_swirl.png",
+   "w": 288,
+   "h": 287
+  },
+  "hearts": {
+   "src": "assets/fx/hearts.png",
+   "w": 288,
+   "h": 287
+  },
+  "money_rain": {
+   "src": "assets/fx/money_rain.png",
+   "w": 288,
+   "h": 286
+  },
+  "sparkles": {
+   "src": "assets/fx/sparkles.png",
+   "w": 288,
+   "h": 287
+  },
+  "steam": {
+   "src": "assets/fx/steam.png",
+   "w": 288,
+   "h": 286
+  },
+  "success_check": {
+   "src": "assets/fx/success_check.png",
+   "w": 288,
+   "h": 287
+  }
+ },
+ "scene": {
+  "street": {
+   "src": "assets/scene/street.jpg",
+   "w": 2400,
+   "h": 1792
+  }
+ }
+};
