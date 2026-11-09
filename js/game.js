@@ -75,7 +75,8 @@ function rebuildBlockers() {
   for (const k in S) if (S[k].unlocked) addBlock(b, S[k].x, S[k].y, S[k].block[0], S[k].block[1]);
   addBlock(b, CFG.counter.x, CFG.counter.y, 170, 80);
   addBlock(b, CFG.desk.x, CFG.desk.y, 190, 70);
-  if (G.flags.trash) addBlock(b, CFG.trash.x, CFG.trash.y, 170, 60);
+  // صندوق الزبالة موجود من بداية اللعبة؛ منع المرور يكون حول جسم الصندوق فقط.
+  addBlock(b, CFG.trash.x, CFG.trash.y, 170, 60);
   for (const t of T) if (t.unlocked) addBlock(b, t.x, t.y, t.w * 0.7, 46);
   addBlock(b, 690, 1085, 110, 40); addBlock(b, 760, 1010, 90, 36); addBlock(b, 560, 1010, 100, 36); addBlock(b, 470, 1160, 90, 40);
   BLOCKS = b;
@@ -254,7 +255,7 @@ function updatePlayerZones(dt) {
   else for (const t of T) if (!t.cleanBy) t.clean = Math.max(0, t.clean - dt);
   // المعلم الرئيسي وحده يتخلص من السندوتشات التي يحملها عند دخوله دائرة الصندوق.
   // تُزال قطعة واحدة في كل نبضة وتظهر وهي تطير إلى داخل الصندوق.
-  if (G.flags.trash && inZone(P, CFG.trash.zone) && P.stack.length > 0) {
+  if (inZone(P, CFG.trash.zone) && P.stack.length > 0) {
     P.trashT += dt; P.workT = 0.2;
     if (P.trashT >= 0.24) {
       P.trashT = 0;
@@ -812,7 +813,7 @@ function collectEntities(list) {
     });
   }
   // الزبالة
-  if (G.flags.trash) add(CFG.trash.y, () => {
+  add(CFG.trash.y, () => {
     const z = CFG.trash; shadow(z.x, z.y, z.w * 0.85); drawStatic('props', 'dumpster_barrel', z.x, z.y, z.w);
     if (G.bags > 0) txt(fmt(G.bags) + '/' + fmt(CFG.trash.full), z.x, z.y - 150, 28, G.bags >= CFG.trash.full ? '#ff6a4d' : '#fff');
     if (P.trashT > 0) drawProgress(z.x, z.y - 180, P.trashT / 2, 20);
@@ -844,10 +845,8 @@ function drawGround() {
   if (S.wrap.unlocked) drawRing(S.wrap.input, lit(S.wrap.input), 'bread');
   drawRing(CFG.counter.drop, lit(CFG.counter.drop), 'sandwich_foul');
   drawRing(CFG.desk.zone, lit(CFG.desk.zone) && C.pile > 0, null);
-  if (G.flags.trash) {
-    drawRing(CFG.trash.zone, lit(CFG.trash.zone) && P.stack.length > 0, 'tomato_plate');
-    txt(P.stack.length > 0 ? 'ارمِ الأكل هنا' : 'صندوق الزبالة', CFG.trash.zone.x, CFG.trash.zone.y + 105, 25, '#fff1d6');
-  }
+  drawRing(CFG.trash.zone, lit(CFG.trash.zone) && P.stack.length > 0, P.stack.length > 0 ? 'tomato_plate' : null);
+  txt(P.stack.length > 0 ? 'ارمِ الأكل هنا' : 'صندوق الزبالة', CFG.trash.zone.x, CFG.trash.zone.y + 105, 25, '#fff1d6');
   if (G.flags.window) drawRing(CFG.traffic.window, lit(CFG.traffic.window), 'sandwich_foul');
   if (PAD) drawPad(PAD);
 }
