@@ -442,10 +442,11 @@ function updateCustomers(dt) {
 /* ===================== العمال ===================== */
 function spawnWorker(kind) {
   const base = { kind, x: 1150, y: 1160, vx: 0, vy: 1, moving: false, anim: 0, rowName: 'idle', stack: [], path: [], timer: 0, state: 'idle', task: null };
-  if (kind === 'carrier') { WK.carrier = Object.assign(base, { sheet: 'delivery', x: 1130, y: 1120 }); }
-  else if (kind === 'cleaner') { WK.cleaner = Object.assign(base, { sheet: 'helper', x: 700, y: 1330 }); }
-  else if (kind === 'cook') { WK.cook = Object.assign(base, { sheet: 'cook', x: 1255, y: 1000 }); }
-  else if (kind === 'cashier') { WK.cashier = Object.assign(base, { sheet: 'cashier', x: 1625, y: 1040 }); }
+  const wp = CFG.WORKER_POSITIONS || {};
+  if (kind === 'carrier') { const p=wp.carrier||{x:1130,y:1120}; WK.carrier = Object.assign(base, { sheet: 'delivery', x:p.x, y:p.y }); }
+  else if (kind === 'cleaner') { const p=wp.cleaner||{x:700,y:1330}; WK.cleaner = Object.assign(base, { sheet: 'helper', x:p.x, y:p.y }); }
+  else if (kind === 'cook') { const p=wp.cook||{x:1255,y:1000}; WK.cook = Object.assign(base, { sheet: 'cook', x:p.x, y:p.y }); }
+  else if (kind === 'cashier') { const p=wp.cashier||{x:1625,y:1040}; WK.cashier = Object.assign(base, { sheet: 'cashier', x:p.x, y:p.y }); }
 }
 function route(w, zx, zy) {
   const cy = CFG.corridorY, pts = [];
@@ -886,8 +887,8 @@ function collectEntities(list) {
   // الشخصيات
   if (BAZ.active) add(BAZ.y, () => drawBaz());
   add(P.y, () => { drawChar(P, CFG.CHAR_H); drawStack(); });
-  for (const c of CUS) add(c.y, () => drawChar(c, c.sheet === 'cust_woman' ? CFG.CUST_H - 6 : CFG.CUST_H));
-  for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H); if (w.kind === 'carrier') txt('الشنكوتي', w.x, w.y - CFG.CHAR_H - 30, 25, '#fff1c7'); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
+  for (const c of CUS) add(c.y, () => { const ch=(c.ty && c.ty.height) || CFG.CUST_H; drawChar(c, c.sheet === 'cust_woman' ? ch - 6 : ch); });
+  for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, (CFG.WORKER_SIZES && CFG.WORKER_SIZES[k]) || (w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H)); if (w.kind === 'carrier') txt('الشنكوتي', w.x, w.y - CFG.CHAR_H - 30, 25, '#fff1c7'); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
   // المركبات
   for (const v of VEH) add(v.y, () => { shadow(v.x, v.y, v.w * 0.85, 0.22); drawStatic('vehicles', v.kind, v.x, v.y + 6, v.w); });
 }
