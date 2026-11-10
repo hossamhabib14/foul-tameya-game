@@ -6,6 +6,7 @@ const F2S = CFG.fillToSandwich;
 
 const G = {
   t: 0, playT: 0, money: 0, shown: 0, fame: 0, level: 1, padIdx: 0, paused: false,
+  businessUnlocked: {}, businessProgress: {}, businessStock: {}, businessCustomers: [], businessSpawnT: 3, businessWorkerProgress:{}, businessWorkerUnlocked:{}, // STUDIO_V16_WORKERS
   up: { speed: 0, cap: 0, prep: 0, price: 0, pat: 0, ccap: 0, work: 0 },
   flags: { chain: false, tameya: false, fries: false, eggplant: false, carrier: false, cleaner: false, cook: false, cashier: false, decor: false, window: false, rack: false, branch: false, trash: false },
   tablesUnlocked: 0, boostUntil: 0, boostCd: 0, ev: null, nextEv: CFG.events.first, spawnT: 1,
@@ -183,6 +184,32 @@ function updatePlayerZones(dt) {
   const cap = playerCap();
   if (P.pt <= 0) {
     let did = false;
+    // STUDIO_V14_BUSINESS_HANDOFF
+    if (P.stack.length < cap) {
+      for (const b of (CFG.businesses || [])) {
+        if (!(G.businessUnlocked && G.businessUnlocked[b.id])) continue;
+        const cp=businessCounter(b), s=businessState(b);
+        const zone={x:(Number(b.x)||0),y:(Number(b.y)||0)+Math.max(12,(Number(b.h)||160)*0.10),r:Math.max(58,(Number(b.w)||180)*0.30)};
+        if (s.items.length && inEllipse(P,zone,zone.r,zone.r*0.62)) {
+          const it=s.items.shift();
+          P.stack.push({type:it.type,born:G.t,businessId:b.id});
+          flyItem(it.type,cp.x,cp.y-55,()=>stackPos(P.stack.length-1),0.22);
+          Snd.thud(); did=true; break;
+        }
+      }
+    }
+    if (!did && P.stack.length) {
+      for (const c of (G.businessCustomers || [])) {
+        if (c.state!=='wait' || dist(P.x,P.y,c.x,c.y)>115) continue;
+        const b=(CFG.businesses||[]).find(x=>x.id===c.businessId); if (!b) continue;
+        const idx=P.stack.findIndex(it=>it.businessId===b.id && G.t>=it.born);
+        if (idx>=0) {
+          const it=P.stack.splice(idx,1)[0], sp=stackPos(idx);
+          flyItem(it.type,sp.x,sp.y,()=>({x:c.x,y:c.y-CFG.CUST_H*0.55}),0.24);
+          serveBusinessCustomer(c,b,idx); Snd.pop(); did=true; break;
+        }
+      }
+    }
     // التقاط من المحطات
     if (P.stack.length < cap) {
       for (const k in S) {
@@ -426,7 +453,150 @@ function updCustomer(c, dt) {
   }
 }
 
+// STUDIO_V14_MANUAL_BUSINESS
+function businessCounter(b) { return { x:Number(b.x)||0, y:(Number(b.y)||0)-Math.max(12,(Number(b.h)||160)*0.12) }; }
+function businessQueue(b, index=0) { const x=(Number(b.x)||0)+Math.max(55,(Number(b.w)||180)*0.48); const y=(Number(b.y)||0)+Math.max(78,(Number(b.h)||160)*0.55); const gap=Math.max(48,Number(b.queueGap)||62); return { x:x+Math.floor(index/5)*gap*0.72, y:y+(index%5)*gap }; }
+function businessWorker(b) { return (CFG.customWorkers||[]).find(w=>w.id===b.workerId) || null; }
+function businessProduct(b) { return b.productSprite || 'sandwich_foul'; }
+function businessState(b) {
+  G.businessStock = G.businessStock || {};
+  if (!G.businessStock[b.id]) G.businessStock[b.id] = { items:[], timer:Math.max(0.5,Number(b.prepTime)||3) };
+  return G.businessStock[b.id];
+}
+function buyOrInspectBusiness(b) {
+  if (!b) return;
+  if (!(G.businessUnlocked && G.businessUnlocked[b.id])) {
+    toast('قف داخل دائرة المشروع وسيتم خصم المبلغ تدريجيًا من رصيدك لفتحه.');
+  } else {
+    const s=businessState(b);
+    toast(b.name + ' مفتوح — منتجات جاهزة: ' + fmt(s.items.length));
+  }
+}
+function updateBusinessPads(dt) {
+  for (const b of (CFG.businesses || [])) {
+    if (b.visible === false || (G.businessUnlocked && G.businessUnlocked[b.id])) continue;
+    G.businessProgress = G.businessProgress || {};
+    const z={x:Number(b.x)||0,y:(Number(b.y)||0)+Math.max(45,(Number(b.h)||160)*0.38),r:Math.max(75,(Number(b.w)||180)*0.48)};
+    const inside=inEllipse(P,{x:z.x,y:z.y},z.r,Math.max(42,z.r*0.52));
+    if (!inside || G.money <= 0) continue;
+    const cost=Math.max(1,Number(b.unlockCost)||500);
+    const rem=Math.max(0,cost-(Number(G.businessProgress[b.id])||0));
+    const rate=Math.max(cost/1.5,60);
+    const paid=Math.min(rem,G.money,rate*dt);
+    if (paid>0) {
+      G.money-=paid; G.businessProgress[b.id]=(G.businessProgress[b.id]||0)+paid;
+      if (Math.random()<dt*10) flyItem('',P.x,P.y-100,{x:z.x,y:z.y},0.22,'coin');
+      if (G.businessProgress[b.id]>=cost-0.01) {
+        G.businessUnlocked[b.id]=true; G.businessProgress[b.id]=cost;
+        businessState(b);
+        banner('اتفتح ' + b.name + '! المنتج هيظهر على المشروع والزبائن هيقفوا صف قدامه');
+        Snd.fanfare(); saveGame();
+      }
+    }
+  }
+}
+function updateBusinessWorkerPads(dt) {
+  for (const b of (CFG.businesses||[])) {
+    if (!G.businessUnlocked?.[b.id] || !b.workerId || G.businessWorkerUnlocked?.[b.id]) continue;
+    const worker=businessWorker(b); if (!worker) continue;
+    const cost=Math.max(0,Number(b.workerUnlockCost)||0);
+    if (cost<=0) { G.businessWorkerUnlocked[b.id]=true; continue; }
+    const pos={x:(Number(b.x)||0)-Math.max(18,(Number(b.w)||180)*0.16),y:(Number(b.y)||0)+Math.max(28,(Number(b.h)||160)*0.24)};
+    const zone={x:pos.x,y:pos.y,r:58};
+    if (!inEllipse(P,zone,zone.r,zone.r*0.62) || G.money<=0) continue;
+    G.businessWorkerProgress[b.id]=G.businessWorkerProgress[b.id]||0;
+    const paid=Math.min(cost-G.businessWorkerProgress[b.id],G.money,Math.max(cost/1.5,30)*dt);
+    if (paid>0) { G.money-=paid; G.businessWorkerProgress[b.id]+=paid; }
+    if (G.businessWorkerProgress[b.id]>=cost-0.01) {
+      G.businessWorkerUnlocked[b.id]=true; G.businessWorkerProgress[b.id]=cost;
+      banner('تم تعيين العامل في '+b.name+'!');
+      Snd.fanfare(); saveGame();
+    }
+  }
+}
+function updateBusinessSystems(dt) {
+  const list=(CFG.businesses||[]).filter(b=>b.visible!==false);
+  G.businessSpawnT=(G.businessSpawnT||0)-dt;
+  for (const b of list) {
+    if (!(G.businessUnlocked && G.businessUnlocked[b.id])) continue;
+    const s=businessState(b), cap=Math.max(1,Number(b.stockCap)||5);
+    s.timer-=dt;
+    if (s.items.length<cap && s.timer<=0) {
+      s.items.push({type:businessProduct(b),born:G.t});
+      s.timer=Math.max(0.5,Number(b.prepTime)||3);
+    }
+  }
+  const open=list.filter(b=>G.businessUnlocked && G.businessUnlocked[b.id]);
+  if (G.businessSpawnT<=0 && open.length && G.businessCustomers.length<10) {
+    G.businessSpawnT=5+Math.random()*3;
+    const b=open[Math.floor(Math.random()*open.length)];
+    const waiting=G.businessCustomers.filter(c=>c.businessId===b.id && c.state!=='leave').length;
+    const q=businessQueue(b,waiting);
+    const ty=CFG.customers.types[Math.floor(Math.random()*CFG.customers.types.length)] || {sheet:'cust_man'};
+    const c={businessId:b.id,queueIndex:waiting,createdAt:G.t,x:CFG.spawn.x+rand(-20,20),y:CFG.spawn.y+rand(-20,20),vx:0,vy:1,
+      moving:true,sheet:ty.sheet||'cust_man',rowName:'idle',anim:Math.random()*2,state:'walk',
+      speed:Math.max(100,Number(CFG.customers.speed?.[0])||150),targetX:q.x,targetY:q.y,
+      need:Math.max(1,Math.min(3,Number(b.orderQty)||1)),delivered:0,flip:false,wait:0};
+    G.businessCustomers.push(c);
+  }
+  for (let i=G.businessCustomers.length-1;i>=0;i--) {
+    const c=G.businessCustomers[i], b=list.find(x=>x.id===c.businessId);
+    if (!b || !(G.businessUnlocked && G.businessUnlocked[b.id])) { G.businessCustomers.splice(i,1); continue; }
+    c.anim+=dt;
+    if (c.state==='walk') {
+      if (moveTo(c,c.targetX,c.targetY,c.speed,dt)) { c.state='wait'; c.moving=false; c.rowName='wait'; c.wait=0; }
+    } else if (c.state==='wait') {
+      c.moving=false; c.rowName='wait'; c.wait+=dt;
+      if (c.wait>45) { c.state='leave'; c.targetX=CFG.spawn.x; c.targetY=CFG.spawn.y; }
+    } else if (c.state==='leave') {
+      if (moveTo(c,c.targetX,c.targetY,c.speed,dt)) G.businessCustomers.splice(i,1);
+    }
+  }
+  // صف مستقل لكل مشروع: إعادة توزيع أماكن الانتظار عند خروج أي زبون.
+  for (const b of open) {
+    const line=G.businessCustomers.filter(c=>c.businessId===b.id && c.state!=='leave').sort((a,b)=>a.createdAt-b.createdAt);
+    line.forEach((c,i)=>{
+      c.queueIndex=i;
+      if (c.state==='wait' && i>0) {
+        const q=businessQueue(b,i);
+        if (Math.hypot(c.x-q.x,c.y-q.y)>4) { c.targetX=q.x; c.targetY=q.y; c.state='requeue'; c.moving=true; }
+      }
+      if (c.state==='requeue' && moveTo(c,c.targetX,c.targetY,c.speed,dt)) { c.state='wait'; c.moving=false; c.rowName='wait'; }
+    });
+  }
+  // العامل له فتح مستقل عن المشروع، ويقف عند الواجهة ويخدم أول زبون في الصف.
+  for (const b of open) {
+    const worker=businessWorker(b);
+    if (!worker) continue;
+    if (!(G.businessWorkerUnlocked && G.businessWorkerUnlocked[b.id])) continue;
+    const line=G.businessCustomers.filter(c=>c.businessId===b.id && c.state==='wait').sort((a,b)=>a.queueIndex-b.queueIndex);
+    const first=line[0], stock=businessState(b);
+    if (first && stock.items.length) {
+      const item=stock.items.shift();
+      serveBusinessCustomer(first,b,0);
+      first.state='leave'; first.targetX=CFG.spawn.x; first.targetY=CFG.spawn.y;
+      first.moving=true; first.rowName='walk';
+      G.businessStock[b.id]=stock;
+    }
+  }
+}
+function serveBusinessCustomer(c,b,itemIndex) {
+  const amount=Math.max(1,Number(b.profitPerOrder)||25);
+  const s=businessState(b);
+  const qty=Math.max(1,Number(b.orderQty)||1);
+  c.delivered=(c.delivered||0)+1;
+  if (c.delivered>=qty) {
+    addMoney(amount); G.shown=G.money; G.servedTotal=(G.servedTotal||0)+1;
+    floater(c.x,c.y-140,'+'+fmt(amount)+' ج','#9dff7a');
+    fx('cash_burst',c.x,c.y-75,100,0.8,-20); Snd.coin();
+    c.state='leave'; c.targetX=CFG.spawn.x; c.targetY=CFG.spawn.y;
+  } else {
+    floater(c.x,c.y-130,'ناقص '+fmt(qty-c.delivered),'#ffe27a');
+  }
+}
+
 function updateCustomers(dt) {
+  updateBusinessSystems(dt);
   if (!G.ev || !G.ev.pause) {
     G.spawnT -= dt;
     if (G.spawnT <= 0) {
@@ -772,6 +942,8 @@ function update(dt) {
   updWorkers(dt);
   updateTraffic(dt);
   updatePad(dt);
+  updateBusinessPads(dt);
+  updateBusinessWorkerPads(dt);
   updateEvents(dt);
   updateFx(dt);
   // شخصية: صف العمل تتحرك الإطارات
@@ -785,14 +957,14 @@ function update(dt) {
 
 /* ===================== حفظ/تحميل ===================== */
 function saveGame() {
-  Store.save({ money: G.money, fame: G.fame, level: G.level, padIdx: G.padIdx, up: G.up, bags: G.bags, ipm: G.ipm, last: Date.now(), playT: G.playT, settings: G.settings, servedTotal: G.servedTotal, dailyDate: G.dailyDate, dailyDishes: G.dailyDishes, dailyHappy: G.dailyHappy });
+  Store.save({ businessUnlocked:G.businessUnlocked||{}, businessProgress:G.businessProgress||{}, businessStock:G.businessStock||{}, businessWorkerProgress:G.businessWorkerProgress||{}, businessWorkerUnlocked:G.businessWorkerUnlocked||{}, money: G.money, fame: G.fame, level: G.level, padIdx: G.padIdx, up: G.up, bags: G.bags, ipm: G.ipm, last: Date.now(), playT: G.playT, settings: G.settings, servedTotal: G.servedTotal, dailyDate: G.dailyDate, dailyDishes: G.dailyDishes, dailyHappy: G.dailyHappy });
 }
 function loadGame() {
   const d = Store.load();
   makePad(0);
   rebuildBlockers();
   if (!d) return null;
-  G.money = d.money || 0; G.shown = G.money; G.fame = d.fame || 0; G.level = d.level || 1; G.up = Object.assign(G.up, d.up || {}); G.bags = d.bags || 0;
+  G.businessUnlocked=Object.assign({},d.businessUnlocked||{}); G.businessProgress=Object.assign({},d.businessProgress||{}); G.businessStock=Object.assign({},d.businessStock||{}); G.businessWorkerProgress=Object.assign({},d.businessWorkerProgress||{}); G.businessWorkerUnlocked=Object.assign({},d.businessWorkerUnlocked||{}); G.money = d.money || 0; G.shown = G.money; G.fame = d.fame || 0; G.level = d.level || 1; G.up = Object.assign(G.up, d.up || {}); G.bags = d.bags || 0;
   G.ipm = d.ipm || 0; G.playT = d.playT || 0; G.servedTotal=d.servedTotal||0; G.dailyDate=d.dailyDate||''; G.dailyDishes=d.dailyDishes||0; G.dailyHappy=d.dailyHappy||0; G.settings = Object.assign(G.settings, d.settings || {});
   const n = d.padIdx || 0;
   for (let i = 0; i < n; i++) { PAD = { idx: i, def: CFG.pads[i], x: 0, y: 0 }; applyPad(CFG.pads[i], true); }
@@ -889,6 +1061,59 @@ function collectEntities(list) {
   add(P.y, () => { drawChar(P, CFG.CHAR_H); drawStack(); });
   for (const c of CUS) add(c.y, () => { const ch=(c.ty && c.ty.height) || CFG.CUST_H; drawChar(c, c.sheet === 'cust_woman' ? ch - 6 : ch); });
   for (const k in WK) { const w = WK[k]; if (!w) continue; add(w.y, () => { drawChar(w, (CFG.WORKER_SIZES && CFG.WORKER_SIZES[k]) || (w.sheet === 'helper' ? CFG.HELPER_H : CFG.CHAR_H)); if (w.kind === 'carrier') txt('الشنكوتي', w.x, w.y - CFG.CHAR_H - 30, 25, '#fff1c7'); if (w.stack && w.stack.length) w.stack.forEach((t, i) => drawItem(t, w.x, w.y - CFG.CHAR_H * 0.95 - i * 18, 44)); }); }
+  // STUDIO_V15_PROJECT_DISPENSER: product dispenses from the business itself; customers queue in front
+  for (const b of (CFG.businesses || [])) {
+    if (b.visible===false) continue;
+    const open=!!(G.businessUnlocked && G.businessUnlocked[b.id]);
+    const bx=Number(b.x)||0, by=Number(b.y)||0, bw=Number(b.w)||180, bh=Number(b.h)||160;
+    add(by+(Number(b.zOffset)||0),()=>{
+      shadow(bx,by,bw*0.85);
+      ctx.save(); ctx.translate(bx,by); ctx.rotate((Number(b.rotation)||0)*Math.PI/180);
+      drawStatic(b.cat||'equipment',b.sprite||'prep_counter',0,0,bw);
+      ctx.restore();
+      if (!open) {
+        const rr=Math.max(75,bw*0.48), py=by+Math.max(45,bh*0.38);
+        ctx.fillStyle='rgba(255,204,55,.20)';ctx.strokeStyle='#ffd23a';ctx.lineWidth=6;
+        ctx.beginPath();ctx.ellipse(bx,py,rr,rr*.52,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+        const cost=Math.max(1,Number(b.unlockCost)||500), paid=G.businessProgress&&G.businessProgress[b.id]||0;
+        drawProgress(bx,py-rr*.5-20,paid/cost,18);
+        txt('قف للفتح '+fmt(Math.max(0,cost-paid))+' ج',bx,py-rr*.52-48,22,'#ffd45c');
+      } else {
+        const cp=businessCounter(b), st=businessState(b);
+        const count=st.items.length;
+        // المنتجات تخرج من واجهة المشروع نفسه؛ لا نضيف كاونترًا منفصلًا.
+        const productY=by-Math.max(18,bh*0.16);
+        const prepDuration=Math.max(0.5,Number(b.prepTime)||3);
+        const prepProgress=count>=Math.max(1,Number(b.stockCap)||5)?1:Math.max(0,Math.min(1,1-(Number(st.timer)||0)/prepDuration));
+        const loadW=Math.max(64,Math.min(112,bw*.58)), loadX=bx-loadW/2, loadY=by-Math.max(74,bh*.58);
+        ctx.fillStyle='rgba(15,20,30,.82)';ctx.fillRect(loadX,loadY,loadW,12);
+        ctx.fillStyle='#f6b83f';ctx.fillRect(loadX,loadY,loadW*prepProgress,12);
+        ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1;ctx.strokeRect(loadX,loadY,loadW,12);
+        txt(count>=Math.max(1,Number(b.stockCap)||5)?'جاهز للبيع':'جاري التحضير',bx,loadY-10,13,'#fff');
+        st.items.slice(0,Math.max(1,Number(b.stockCap)||5)).forEach((it,i)=>{
+          const col=i%3, row=Math.floor(i/3);
+          drawStatic(b.productCat||'food',it.type,bx+(col-1)*Math.min(34,bw*0.17),productY-row*22,Math.min(42,bw*0.22));
+        });
+        txt(b.productName||'المنتج',bx,productY-48,20,'#fff');
+        txt('منتجات '+fmt(count),bx,by+22,18,count?'#9dff7a':'#fff');
+        ctx.strokeStyle='rgba(255,220,80,.72)';ctx.lineWidth=3;
+        ctx.beginPath();ctx.ellipse(bx,by+Math.max(18,bh*0.12),Math.max(58,bw*.30),Math.max(36,bw*.18),0,0,Math.PI*2);ctx.stroke();
+        const worker=businessWorker(b);
+        if (worker && G.businessWorkerUnlocked && G.businessWorkerUnlocked[b.id]) {
+          const wx=bx-Math.max(18,bw*.16), wy=by+Math.max(28,bh*.24);
+          const sh=worker.sheet;
+          if (ASSETS.anim[sh] && IMG.anim[sh] && IMG.anim[sh].naturalWidth) drawChar({sheet:sh,x:wx,y:wy,rowName:'work',anim:G.t,moving:false},Number(worker.height)||CFG.HELPER_H||150);
+          else drawChar({sheet:'helper',x:wx,y:wy,rowName:'work',anim:G.t,moving:false},CFG.HELPER_H||150);
+        } else if (worker) {
+          const wx=bx-Math.max(65,bw*.55), wy=by+Math.max(80,bh*.60);
+          const cost=Math.max(0,Number(b.workerUnlockCost)||0), paid=G.businessWorkerProgress&&G.businessWorkerProgress[b.id]||0;
+          ctx.strokeStyle='#64d8ff';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(wx,wy,52,32,0,0,Math.PI*2);ctx.stroke();
+          txt('فتح العامل '+fmt(Math.max(0,cost-paid))+' ج',wx,wy-48,18,'#8fe6ff');
+        }
+      }
+    });
+  }
+  for (const c of (G.businessCustomers||[])) add(c.y,()=>{drawChar(c,CFG.CUST_H); if(c.state==='wait'){drawBubble(c.x,c.y-CFG.CUST_H-8,[[((CFG.businesses||[]).find(b=>b.id===c.businessId)||{}).productSprite||'sandwich_foul',Math.max(1,(c.need||1)-(c.delivered||0))]],1);}});
   // المركبات
   for (const v of VEH) add(v.y, () => { shadow(v.x, v.y, v.w * 0.85, 0.22); drawStatic('vehicles', v.kind, v.x, v.y + 6, v.w); });
 }
