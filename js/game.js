@@ -30,7 +30,7 @@ const T = CFG.tables.map((d, i) => ({
   seats: d.seats.map(s => ({ x: d.x + s[0], y: d.y + s[1], c: null })),
 }));
 const CUS = [];
-const BAZ = { active: false, x: 0, y: 0, vx: 0, vy: 1, moving: false, sheet: 'baz', rowName: 'idle', state: 'idle', nextAt: 75, anim: 0, shake: 0, reactionT: 0 };
+const BAZ = { active: false, x: 0, y: 0, vx: 0, vy: 1, moving: false, sheet: 'police', rowName: 'idle', state: 'idle', nextAt: 105, anim: 0, shake: 0, reactionT: 0 };
 
 const WK = { carrier: null, cleaner: null, cook: null, cashier: null };
 const VEH = [];
@@ -905,20 +905,36 @@ function updateBaz(dt) {
     BAZ.rowName = BAZ.state === 'asking' ? 'talk' : 'idle';
   }
 }
+function removePoliceSandwiches(amount) {
+  let remaining = amount;
+  const takeFrom = (arr, getType) => {
+    if (!Array.isArray(arr) || remaining <= 0) return;
+    for (let i = arr.length - 1; i >= 0 && remaining > 0; i--) {
+      if (SW.has(getType(arr[i]))) { arr.splice(i, 1); remaining--; }
+    }
+  };
+  takeFrom(P.stack, item => item && item.type);
+  for (const key in S) takeFrom(S[key].out, item => item);
+  takeFrom(C.items, item => item && item.type);
+  for (const key in WK) if (WK[key] && WK[key].stack) takeFrom(WK[key].stack, item => item && item.type ? item.type : item);
+  for (const id in (G.businessStock || {})) takeFrom(G.businessStock[id].items, item => item && item.type ? item.type : item);
+  return amount - remaining;
+}
 function finishBaz(accepted) {
   if (!BAZ.active || BAZ.state !== 'asking') return;
   if (accepted) {
-    const cost = Math.min(15, G.money);
-    G.money -= cost; G.shown = G.money; G.fame += 1;
-    floater(BAZ.x, BAZ.y - 190, 'ربنا يفتح عليك', '#aaff8a');
-    banner('الباز: ربنا يفتح عليك'); Snd.ding();
+    G.money -= 900; G.shown = G.money;
+    floater(BAZ.x, BAZ.y - 190, '-٩٠٠ ج', '#ffb08a');
+    banner('المعلم دفع ٩٠٠ جنيه لأمين الشرطة'); Snd.buzz();
   } else {
-    G.fame = Math.max(0, G.fame - 1); BAZ.shake = 0.8;
-    floater(BAZ.x, BAZ.y - 190, 'ماشي يا معلم.. هتشوف', '#ff9c7a');
-    banner('الباز زعل ومشي'); Snd.buzz();
+    const taken = removePoliceSandwiches(10);
+    BAZ.shake = 0.8;
+    floater(BAZ.x, BAZ.y - 190, 'أخد ' + AR(taken) + ' سندوتش', '#ff9c7a');
+    banner(taken === 10 ? 'أمين الشرطة أخد ١٠ سندوتشات' : 'أمين الشرطة أخد المتاح: ' + AR(taken) + ' سندوتش');
+    Snd.thud();
   }
-  BAZ.state = 'reaction'; BAZ.rowName = 'reaction'; BAZ.moving = false; BAZ.reactionT = 0.9;
-  BAZ.nextAt = G.t + rand(60, 120);
+  BAZ.state = 'reaction'; BAZ.rowName = 'talk'; BAZ.moving = false; BAZ.reactionT = 1.2;
+  BAZ.nextAt = G.t + rand(150, 240);
 }
 function drawBaz() {
   const shake = BAZ.shake > 0 ? Math.sin(BAZ.anim * 45) * 5 * BAZ.shake : 0;
@@ -927,7 +943,7 @@ function drawBaz() {
   ctx.beginPath(); ctx.ellipse(BAZ.x, BAZ.y - 3, 34, 12, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
   ctx.save(); ctx.translate(shake, 0); drawChar(BAZ, CFG.CHAR_H); ctx.restore();
-  if (BAZ.state === 'asking') txt('لله يا محسنين.. حاجة ببلاش يا معلم؟', BAZ.x + shake, BAZ.y - 180, 23, '#fff', '#392313');
+  if (BAZ.state === 'asking') txt('أمين الشرطة عايز المعلوم يا معلم!', BAZ.x + shake, BAZ.y - 180, 23, '#fff', '#392313');
 }
 
 /* ===================== التحديث الرئيسي ===================== */

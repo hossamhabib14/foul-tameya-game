@@ -49,6 +49,20 @@ const ASSETS = {
         ]
       }
     },
+    "police": {
+      "src": "assets/anim/police.png",
+      "cols": 10,
+      "rows": 6,
+      "fw": 174,
+      "fh": 294,
+      "rowNames": ["idle", "walk_down", "walk_up", "walk_left", "walk_right", "talk"],
+      "frames": [10, 10, 10, 10, 10, 10],
+      "rowTop": [24, 0, 20, 14, 14, 8],
+      "rowBottom": [294, 294, 293, 291, 290, 287],
+      "rowH": [270, 294, 273, 277, 276, 279],
+      "standH": 270,
+      "lateral": {"left": [3, false], "right": [4, false]}
+    },
     "vendor": {
       "src": "assets/anim/vendor.png",
       "cols": 10,
